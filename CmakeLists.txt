@@ -1,0 +1,4 @@
+cmake_minimum_required(VERSION 3.10)
+project(Vortex)
+
+add_executable(vortex src/main.cpp src/inverted_index.cpp)
