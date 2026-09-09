@@ -1,19 +1,22 @@
-#include<string>
-#include<vector>
-#include<unordered_map>
+#ifndef INVERTED_INDEX_HPP
+#define INVERTED_INDEX_HPP
 
-struct Posting{
+#include <string>
+#include <vector>
+#include <unordered_map>
+
+struct Posting {
     int doc_id;
-    double term_frequency;
-
-
+    double frequency;
 };
 
 class InvertedIndex {
-  private:
-  std::unordered_map<std::string, std::vector<Posting>> index;
-  
-  public:
-  void add_term(const std::string& term , int doc_id , double term_freq);
-  std::vector<Posting> search_term(const std::string& term);
+private:
+    std::unordered_map<std::string, std::vector<Posting>> index;
+
+public:
+    void add_document(int doc_id, const std::string& text);
+    std::vector<Posting> search_term(const std::string& term);
 };
+
+#endif // INVERTED_INDEX_HPP

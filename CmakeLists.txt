@@ -1,4 +1,16 @@
 cmake_minimum_required(VERSION 3.10)
 project(Vortex)
 
-add_executable(vortex src/main.cpp src/inverted_index.cpp)
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Define the executable and its source files
+add_executable(vortex 
+    src/main.cpp 
+    src/inverted_index.cpp 
+    src/trie.cpp
+)
+
+# Tell the compiler where to find header files
+target_include_directories(vortex PRIVATE include)
