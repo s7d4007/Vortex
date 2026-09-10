@@ -2,6 +2,7 @@
 #include <sstream>
 
 void InvertedIndex::add_document(int doc_id, const std::string& text) {
+    total_docs++; // Increases by 1 every time a document is indexed
     std::stringstream ss(text);
     std::string word;
     
