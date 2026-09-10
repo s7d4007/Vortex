@@ -14,6 +14,7 @@ class InvertedIndex {
 private:
     std::unordered_map<std::string, std::vector<Posting>> index;
     int total_docs=0;
+    double calculate_idf(const std::string& term);
 
 public:
     void add_document(int doc_id, const std::string& text);

@@ -1,5 +1,6 @@
 #include "../include/inverted_index.hpp"
 #include <sstream>
+#include<cmath>
 
 void InvertedIndex::add_document(int doc_id, const std::string& text) {
     total_docs++; // Increases by 1 every time a document is indexed
@@ -28,4 +29,13 @@ std::vector<Posting> InvertedIndex::search_term(const std::string& term) {
         return index[term];
     }
     return {};
+}
+
+double InvertedIndex::calculate_idf(const std::string& term) {
+    if (index.find(term) == index.end()) {
+        return 0.0;
+    }
+    
+    double size = index[term].size();
+    return std::log(total_docs / size);
 }
