@@ -53,7 +53,7 @@ VORTEX uses CMake for cross-platform build generation. To compile the engine fro
 
 # 1. Clone the repository
 
-git clone https://github.com/yourusername/vortex.git
+git clone https://github.com/s7d4007/vortex.git
 cd vortex
 
 # 2. Generate build files (configured for MSVC/Windows)
