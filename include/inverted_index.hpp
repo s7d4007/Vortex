@@ -10,6 +10,11 @@ struct Posting {
     double frequency;
 };
 
+struct SearchResult{
+    int doc_id;
+    double score;
+};
+
 class InvertedIndex {
 private:
     std::unordered_map<std::string, std::vector<Posting>> index;
@@ -19,6 +24,7 @@ private:
 public:
     void add_document(int doc_id, const std::string& text);
     std::vector<Posting> search_term(const std::string& term);
+    std::vector<SearchResult>  ranked_search(const std::string& term);
 };
 
 #endif // INVERTED_INDEX_HPP
