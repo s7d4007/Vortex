@@ -28,5 +28,11 @@ int main() {
         std::cout << "Document ID: " << res.doc_id << " | Score: " << res.score << "\n";
     }
 
+    std::vector<std::string> suggestions = autocomplete.get_words_with_prefix("alg");
+    std::cout << "\nAutocomplete suggestions for 'alg':\n";
+    for (const auto& word : suggestions) {
+    std::cout << "- " << word << "\n";
+    }
+
     return 0;
 }

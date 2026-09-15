@@ -13,12 +13,14 @@ struct TrieNode {
 class Trie {
 private:
     TrieNode* root;
+    void dfs(TrieNode* node, std::string current_word, std::vector<std::string>& results);
 
 public:
     Trie();
     void insert(const std::string& word);
     bool search(const std::string& word);
     bool starts_with(const std::string& prefix);
+    std::vector<std::string> get_words_with_prefix(const std::string&prefix);
 };
 
 #endif // TRIE_HPP
