@@ -25,6 +25,8 @@ public:
     void add_document(int doc_id, const std::string& text);
     std::vector<Posting> search_term(const std::string& term);
     std::vector<SearchResult>  ranked_search(const std::string& term);
+    std::unordered_map<std::string, double> get_query_vector(const std::string& query);
+    std::vector<SearchResult> cosine_search(const std::string& query);
 };
 
 #endif // INVERTED_INDEX_HPP

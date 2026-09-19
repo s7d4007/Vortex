@@ -37,7 +37,7 @@ double InvertedIndex::calculate_idf(const std::string& term) {
         return 0.0;
     }
     
-    double size = index[term].size();
+    double size = static_cast<double>(index[term].size());
     return std::log(total_docs / size);
 }
 
@@ -61,5 +61,64 @@ std::vector<SearchResult> InvertedIndex::ranked_search(const std::string& term) 
         return a.score > b.score;
     });
     
+    return results;
+}
+
+std::unordered_map<std::string, double> InvertedIndex::get_query_vector(const std::string& query) {
+    std::unordered_map<std::string, double> query_vector;
+    std::stringstream ss(query);
+    std::string word;
+    
+    while (ss >> word) {
+        query_vector[word] += 1.0;
+    }
+    
+    for (auto& pair : query_vector) {
+        double idf = calculate_idf(pair.first);
+        pair.second = pair.second * idf;
+    }
+    
+    return query_vector;
+}
+
+std::vector<SearchResult> InvertedIndex::cosine_search(const std::string& query) {
+    std::unordered_map<std::string, double> query_vector = get_query_vector(query);
+    std::unordered_map<int, double> dot_products;
+    std::unordered_map<int, double> doc_magnitudes;
+    std::vector<SearchResult> results;
+
+    double query_magnitude = 0.0;
+    for (const auto& pair : query_vector) {
+        query_magnitude += pair.second * pair.second;
+    }
+    query_magnitude = std::sqrt(query_magnitude);
+
+    if (query_magnitude == 0.0) return results;
+
+    for (const auto& q_pair : query_vector) {
+        std::string word = q_pair.first;
+        double q_weight = q_pair.second;
+
+        std::vector<Posting> postings = search_term(word);
+        double idf = calculate_idf(word);
+
+        for (const auto& p : postings) {
+            double doc_weight = p.frequency * idf;
+            dot_products[p.doc_id] += q_weight * doc_weight;
+            doc_magnitudes[p.doc_id] += doc_weight * doc_weight;
+        }
+    }
+
+    for (const auto& doc : dot_products) {
+        int doc_id = doc.first;
+        double doc_mag = std::sqrt(doc_magnitudes[doc_id]);
+        double score = doc.second / (query_magnitude * doc_mag);
+        results.push_back({doc_id, score});
+    }
+
+    std::sort(results.begin(), results.end(), [](const SearchResult& a, const SearchResult& b) {
+        return a.score > b.score;
+    });
+
     return results;
 }

@@ -66,5 +66,12 @@ int main() {
     std::cout << "- " << word << "\n";
     }
     autocomplete_search("alg", autocomplete, engine);
+
+    std::vector<SearchResult> multi_word_results = engine.cosine_search("algorithm data");
+    std::cout << "\nCosine Search Results for 'algorithm data':\n";
+    for (const auto& res : multi_word_results) {
+        std::cout << "Document ID: " << res.doc_id << " | Cosine Score: " << res.score << "\n";
+    }
+
     return 0;
 }
