@@ -46,9 +46,9 @@ int main() {
     autocomplete.insert("algorithmic");
     autocomplete.insert("search");
 
-    std::cout << "Searching 'algorithm': " << (autocomplete.search("algorithm") ? "Found" : "Not Found") << std::endl;
-    std::cout << "Prefix 'alg' exists: " << (autocomplete.starts_with("alg") ? "Yes" : "No") << std::endl;
-    std::cout << "Prefix 'cat' exists: " << (autocomplete.starts_with("cat") ? "Yes" : "No") << std::endl;
+    std::cout << "Searching 'AlGoRiThm': " << (autocomplete.search("AlGoRiThm") ? "Found" : "Not Found") << "\n";
+    std::cout << "Prefix 'ALG' exists: " << (autocomplete.starts_with("ALG") ? "Yes" : "No") << "\n";
+    std::cout << "Prefix 'cat' exists: " << (autocomplete.starts_with("cat") ? "Yes" : "No") << "\n";
 
     engine.add_document(3, "algorithm c++ algorithm fast");
     engine.add_document(4, "learning python data");
@@ -60,12 +60,13 @@ int main() {
         std::cout << "Document ID: " << res.doc_id << " | Score: " << res.score << "\n";
     }
 
-    std::vector<std::string> suggestions = autocomplete.get_words_with_prefix("alg");
-    std::cout << "\nAutocomplete suggestions for 'alg':\n";
+    std::vector<std::string> suggestions = autocomplete.get_words_with_prefix("ALG");
+    std::cout << "\nAutocomplete suggestions for 'ALG':\n";
     for (const auto& word : suggestions) {
-    std::cout << "- " << word << "\n";
+        std::cout << "- " << word << "\n";
     }
-    autocomplete_search("alg", autocomplete, engine);
+    
+    autocomplete_search("ALG", autocomplete, engine);
 
     std::vector<SearchResult> multi_word_results = engine.cosine_search("algorithm data");
     std::cout << "\nCosine Search Results for 'algorithm data':\n";
