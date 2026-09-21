@@ -1,3 +1,4 @@
+#include "../include/utils.hpp"
 #include "../include/inverted_index.hpp"
 #include <sstream>
 #include<cmath>
@@ -9,20 +10,21 @@ void InvertedIndex::add_document(int doc_id, const std::string& text) {
     std::string word;
     
     while (ss >> word) {
-        // Simple check to see if this doc_id already exists in the posting list for this word
-        auto& postings = index[word];
-        bool found = false;
-        for (auto& p : postings) {
-            if (p.doc_id == doc_id) {
-                p.frequency += 1.0; // Increment frequency if word appears multiple times
-                found = true;
-                break;
+            word = normalize_text(word);
+            
+            auto& postings = index[word];
+            bool found = false;
+            for (auto& p : postings) {
+                if (p.doc_id == doc_id) {
+                    p.frequency += 1.0;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                postings.push_back({doc_id, 1.0});
             }
         }
-        if (!found) {
-            postings.push_back({doc_id, 1.0});
-        }
-    }
 }
 
 std::vector<Posting> InvertedIndex::search_term(const std::string& term) {
@@ -70,6 +72,7 @@ std::unordered_map<std::string, double> InvertedIndex::get_query_vector(const st
     std::string word;
     
     while (ss >> word) {
+        word = normalize_text(word);
         query_vector[word] += 1.0;
     }
     
