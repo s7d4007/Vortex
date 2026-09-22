@@ -14,8 +14,8 @@ inline std::string normalize_text(const std::string& input) {
 }
 
 inline int levenshtein_distance(const std::string& s1, const std::string& s2) {
-    int m = s1.size();
-    int n = s2.size();
+    int m = static_cast<int>(s1.size());
+    int n = static_cast<int>(s2.size());
     std::vector<std::vector<int>> dp(m + 1, std::vector<int>(n + 1));
     
     for (int i = 0; i <= m; ++i) dp[i][0] = i;

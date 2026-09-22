@@ -44,21 +44,17 @@ double InvertedIndex::calculate_idf(const std::string& term) {
 }
 
 std::vector<SearchResult> InvertedIndex::ranked_search(const std::string& term) {
+    std::string normalized_term = normalize_text(term);
+    std::string best_match = find_closest_term(normalized_term);
+    
     std::vector<SearchResult> results;
+    if (best_match.empty()) return results;
     
-    // 1. Get the raw postings (gives the frequencies)
-    std::vector<Posting> postings = search_term(term);
-    
-    // 2. Get the IDF multiplier for this specific word
-    double idf = calculate_idf(term);
-    
-    // 3. Loop through every posting
-    for (const auto& p : postings) {
-        double  final_score =  p.frequency*idf;
-        results.push_back({p.doc_id, final_score});
+    double idf = calculate_idf(best_match);
+    for (const auto& p : index[best_match]) {
+        results.push_back({p.doc_id, p.frequency * idf});
     }
     
-    // 4. Sort the results in descending order (highest score first)
     std::sort(results.begin(), results.end(), [](const SearchResult& a, const SearchResult& b) {
         return a.score > b.score;
     });
@@ -73,7 +69,10 @@ std::unordered_map<std::string, double> InvertedIndex::get_query_vector(const st
     
     while (ss >> word) {
         word = normalize_text(word);
-        query_vector[word] += 1.0;
+        std::string best_match = find_closest_term(word);
+        if (!best_match.empty()) {
+            query_vector[best_match] += 1.0;
+        }
     }
     
     for (auto& pair : query_vector) {

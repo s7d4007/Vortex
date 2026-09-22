@@ -53,7 +53,8 @@ int main() {
     engine.add_document(3, "algorithm c++ algorithm fast");
     engine.add_document(4, "learning python data");
 
-    std::vector<SearchResult> results = engine.ranked_search("algorithm");
+    std::vector<SearchResult> results = engine.ranked_search("algotihm");
+    std::cout << "\nRanked Search Results for 'algotihm':\n";
 
     std::cout << "\nRanked Search Results for 'algorithm':\n";
     for (const auto& res : results) {
@@ -68,8 +69,9 @@ int main() {
     
     autocomplete_search("ALG", autocomplete, engine);
 
-    std::vector<SearchResult> multi_word_results = engine.cosine_search("algorithm data");
-    std::cout << "\nCosine Search Results for 'algorithm data':\n";
+    std::vector<SearchResult> multi_word_results = engine.cosine_search("algoritm datta");
+    std::cout << "\nCosine Search Results for 'algoritm datta':\n";
+
     for (const auto& res : multi_word_results) {
         std::cout << "Document ID: " << res.doc_id << " | Cosine Score: " << res.score << "\n";
     }
