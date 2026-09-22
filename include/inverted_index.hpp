@@ -27,6 +27,7 @@ public:
     std::vector<SearchResult>  ranked_search(const std::string& term);
     std::unordered_map<std::string, double> get_query_vector(const std::string& query);
     std::vector<SearchResult> cosine_search(const std::string& query);
+    std::string find_closest_term(const std::string& query_term, int max_distance = 2);
 };
 
 #endif // INVERTED_INDEX_HPP

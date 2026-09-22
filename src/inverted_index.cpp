@@ -125,3 +125,22 @@ std::vector<SearchResult> InvertedIndex::cosine_search(const std::string& query)
 
     return results;
 }
+
+std::string InvertedIndex::find_closest_term(const std::string& query_term, int max_distance) {
+    if (index.find(query_term) != index.end()) {
+        return query_term;
+    }
+    
+    std::string best_match = "";
+    int min_dist = max_distance + 1;
+    
+    for (const auto& pair : index) {
+        int dist = levenshtein_distance(query_term, pair.first);
+        if (dist < min_dist) {
+            min_dist = dist;
+            best_match = pair.first;
+        }
+    }
+    
+    return min_dist <= max_distance ? best_match : "";
+}
