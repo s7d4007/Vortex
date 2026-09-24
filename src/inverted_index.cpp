@@ -40,7 +40,7 @@ double InvertedIndex::calculate_idf(const std::string& term) {
     }
     
     double size = static_cast<double>(index[term].size());
-    return std::log(total_docs / size);
+    return std::log(total_docs / size) + 1.0;
 }
 
 std::vector<SearchResult> InvertedIndex::ranked_search(const std::string& term) {
