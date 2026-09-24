@@ -46,34 +46,37 @@ int main() {
     autocomplete.insert("algorithmic");
     autocomplete.insert("search");
 
-    std::cout << "Searching 'AlGoRiThm': " << (autocomplete.search("AlGoRiThm") ? "Found" : "Not Found") << "\n";
-    std::cout << "Prefix 'ALG' exists: " << (autocomplete.starts_with("ALG") ? "Yes" : "No") << "\n";
-    std::cout << "Prefix 'cat' exists: " << (autocomplete.starts_with("cat") ? "Yes" : "No") << "\n";
+    std::string input;
+    std::cout << "\n--- VORTEX SEARCH ENGINE ---\nType 'exit' to quit.\n\n";
 
-    engine.add_document(3, "algorithm c++ algorithm fast");
-    engine.add_document(4, "learning python data");
+    while (true) {
+        std::cout << "Search> ";
+        std::getline(std::cin, input);
 
-    std::vector<SearchResult> results = engine.ranked_search("algotihm");
-    std::cout << "\nRanked Search Results for 'algotihm':\n";
+        if (input == "exit" || input == "quit") break;
+        if (input.empty()) continue;
 
-    std::cout << "\nRanked Search Results for 'algorithm':\n";
-    for (const auto& res : results) {
-        std::cout << "Document ID: " << res.doc_id << " | Score: " << res.score << "\n";
-    }
+        std::vector<SearchResult> phrase_results = engine.cosine_search(input);
+        
+        std::cout << "\n[ Phrase Matches ]\n";
+        if (phrase_results.empty()) {
+            std::cout << "No documents found.\n";
+        } else {
+            for (const auto& res : phrase_results) {
+                std::cout << "Doc ID: " << res.doc_id << " | Score: " << res.score << "\n";
+            }
+        }
 
-    std::vector<std::string> suggestions = autocomplete.get_words_with_prefix("ALG");
-    std::cout << "\nAutocomplete suggestions for 'ALG':\n";
-    for (const auto& word : suggestions) {
-        std::cout << "- " << word << "\n";
-    }
-    
-    autocomplete_search("ALG", autocomplete, engine);
-
-    std::vector<SearchResult> multi_word_results = engine.cosine_search("algoritm datta");
-    std::cout << "\nCosine Search Results for 'algoritm datta':\n";
-
-    for (const auto& res : multi_word_results) {
-        std::cout << "Document ID: " << res.doc_id << " | Cosine Score: " << res.score << "\n";
+        std::vector<std::string> suggestions = autocomplete.get_words_with_prefix(input);
+        std::cout << "\n[ Autocomplete Suggestions ]\n";
+        if (suggestions.empty()) {
+            std::cout << "None\n";
+        } else {
+            for (const auto& word : suggestions) {
+                std::cout << "- " << word << "\n";
+            }
+        }
+        std::cout << "----------------------------\n";
     }
 
     return 0;
