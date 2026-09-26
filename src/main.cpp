@@ -40,11 +40,14 @@ int main() {
     engine.add_document(2, "algorithm data structures");
     engine.add_document(3, "C++ algorithm algorithm");
     engine.add_document(4, "Learning Python Algorithm");
-
+    engine.add_document(5, "the algorithm is fast and efficient");
+    
     Trie autocomplete;
     autocomplete.insert("algorithm");
     autocomplete.insert("algorithmic");
     autocomplete.insert("search");
+    autocomplete.insert("the");
+    autocomplete.insert("fast");
 
     std::string input;
     std::cout << "\n--- VORTEX SEARCH ENGINE ---\nType 'exit' to quit.\n\n";

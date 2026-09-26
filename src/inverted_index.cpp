@@ -10,21 +10,23 @@ void InvertedIndex::add_document(int doc_id, const std::string& text) {
     std::string word;
     
     while (ss >> word) {
-            word = normalize_text(word);
-            
-            auto& postings = index[word];
-            bool found = false;
-            for (auto& p : postings) {
-                if (p.doc_id == doc_id) {
-                    p.frequency += 1.0;
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                postings.push_back({doc_id, 1.0});
+        word = normalize_text(word);
+        
+        if (word.empty() || is_stop_word(word)) continue;
+        
+        auto& postings = index[word];
+        bool found = false;
+        for (auto& p : postings) {
+            if (p.doc_id == doc_id) {
+                p.frequency += 1.0;
+                found = true;
+                break;
             }
         }
+        if (!found) {
+            postings.push_back({doc_id, 1.0});
+        }
+}
 }
 
 std::vector<Posting> InvertedIndex::search_term(const std::string& term) {
@@ -69,6 +71,9 @@ std::unordered_map<std::string, double> InvertedIndex::get_query_vector(const st
     
     while (ss >> word) {
         word = normalize_text(word);
+        
+        if (word.empty() || is_stop_word(word)) continue;
+        
         std::string best_match = find_closest_term(word);
         if (!best_match.empty()) {
             query_vector[best_match] += 1.0;

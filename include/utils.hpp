@@ -1,7 +1,7 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 #include<vector>
-
+#include <unordered_set>
 #include <string>
 #include <cctype>
 #include <algorithm>
@@ -11,6 +11,16 @@ inline std::string normalize_text(const std::string& input) {
     result.erase(std::remove_if(result.begin(), result.end(), ::ispunct), result.end());
     std::transform(result.begin(), result.end(), result.begin(), ::tolower);
     return result;
+}
+
+inline bool is_stop_word(const std::string& word) {
+    static const std::unordered_set<std::string> stop_words = {
+        "a", "an", "and", "are", "as", "at", "be", "but", "by",
+        "for", "if", "in", "into", "is", "it", "no", "not", "of",
+        "on", "or", "such", "that", "the", "their", "then", "there",
+        "these", "they", "this", "to", "was", "will", "with"
+    };
+    return stop_words.find(word) != stop_words.end();
 }
 
 inline int levenshtein_distance(const std::string& s1, const std::string& s2) {

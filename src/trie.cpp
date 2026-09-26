@@ -7,6 +7,9 @@ Trie::Trie() {
 
 void Trie::insert(const std::string& word) {
     std::string normalized_word = normalize_text(word);
+    
+    if (normalized_word.empty() || is_stop_word(normalized_word)) return;
+    
     TrieNode* current = root;
     for (char ch : normalized_word) {
         if (current->children.find(ch) == current->children.end()) {
