@@ -1,3 +1,4 @@
+#include<fstream>
 #include "../include/utils.hpp"
 #include "../include/inverted_index.hpp"
 #include <sstream>
@@ -147,4 +148,46 @@ std::string InvertedIndex::find_closest_term(const std::string& query_term, int 
     }
     
     return min_dist <= max_distance ? best_match : "";
+}
+
+// save_index will write the map to a text file, and load_index will clear memory and reconstruct the map from the text file
+
+void InvertedIndex::save_index(const std::string& filename) {
+    std::ofstream out(filename);
+    if (!out) return;
+    
+    out << total_docs << "\n";
+    for (const auto& pair : index) {
+        out << pair.first;
+        for (const auto& p : pair.second) {
+            out << " " << p.doc_id << " " << p.frequency;
+        }
+        out << "\n";
+    }
+    out.close();
+}
+
+void InvertedIndex::load_index(const std::string& filename) {
+    std::ifstream in(filename);
+    if (!in) return;
+    
+    index.clear();
+    std::string line;
+    
+    if (std::getline(in, line)) {
+        total_docs = std::stoi(line);
+    }
+    
+    while (std::getline(in, line)) {
+        std::stringstream ss(line);
+        std::string term;
+        ss >> term;
+        
+        int doc_id;
+        double frequency;
+        while (ss >> doc_id >> frequency) {
+            index[term].push_back({doc_id, frequency});
+        }
+    }
+    in.close();
 }

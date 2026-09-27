@@ -49,6 +49,14 @@ int main() {
     autocomplete.insert("the");
     autocomplete.insert("fast");
 
+    // Save the current index to the disk
+    engine.save_index("vortex_index.txt");
+    std::cout << "Index successfully saved to vortex_index.txt!\n";
+
+    // Create a brand new, empty engine and load the file into it
+    InvertedIndex disk_engine;
+    disk_engine.load_index("vortex_index.txt");
+
     std::string input;
     std::cout << "\n--- VORTEX SEARCH ENGINE ---\nType 'exit' to quit.\n\n";
 
@@ -59,7 +67,8 @@ int main() {
         if (input == "exit" || input == "quit") break;
         if (input.empty()) continue;
 
-        std::vector<SearchResult> phrase_results = engine.cosine_search(input);
+        // Use disk_engine here to prove it is reading from the loaded file
+        std::vector<SearchResult> phrase_results = disk_engine.cosine_search(input);
         
         std::cout << "\n[ Phrase Matches ]\n";
         if (phrase_results.empty()) {
