@@ -6,10 +6,16 @@
 #include <cctype>
 #include <algorithm>
 
-inline std::string normalize_text(const std::string& input) {
-    std::string result = input;
-    result.erase(std::remove_if(result.begin(), result.end(), ::ispunct), result.end());
-    std::transform(result.begin(), result.end(), result.begin(), ::tolower);
+inline std::string normalize_text(const std::string& text) {
+    std::string result;
+    for (char c : text) {
+        if (std::isalnum(static_cast<unsigned char>(c))) {
+            result += std::tolower(static_cast<unsigned char>(c));
+        } else {
+            // Convert ALL punctuation, symbols, and whitespace into spaces
+            result += ' '; 
+        }
+    }
     return result;
 }
 

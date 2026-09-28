@@ -5,14 +5,14 @@
 #include<cmath>
 #include<algorithm>
 
-void InvertedIndex::add_document(int doc_id, const std::string& text) {
-    total_docs++; // Increases by 1 every time a document is indexed
-    std::stringstream ss(text);
+void InvertedIndex::add_document(int doc_id, const std::string& content) {
+    total_docs++;
+    
+    std::string normalized_content = normalize_text(content);
+    std::stringstream ss(normalized_content);
     std::string word;
     
     while (ss >> word) {
-        word = normalize_text(word);
-        
         if (word.empty() || is_stop_word(word)) continue;
         
         auto& postings = index[word];
@@ -27,7 +27,7 @@ void InvertedIndex::add_document(int doc_id, const std::string& text) {
         if (!found) {
             postings.push_back({doc_id, 1.0});
         }
-}
+    }
 }
 
 std::vector<Posting> InvertedIndex::search_term(const std::string& term) {
@@ -67,12 +67,12 @@ std::vector<SearchResult> InvertedIndex::ranked_search(const std::string& term) 
 
 std::unordered_map<std::string, double> InvertedIndex::get_query_vector(const std::string& query) {
     std::unordered_map<std::string, double> query_vector;
-    std::stringstream ss(query);
+    
+    std::string normalized_query = normalize_text(query);
+    std::stringstream ss(normalized_query);
     std::string word;
     
     while (ss >> word) {
-        word = normalize_text(word);
-        
         if (word.empty() || is_stop_word(word)) continue;
         
         std::string best_match = find_closest_term(word);
@@ -80,12 +80,6 @@ std::unordered_map<std::string, double> InvertedIndex::get_query_vector(const st
             query_vector[best_match] += 1.0;
         }
     }
-    
-    for (auto& pair : query_vector) {
-        double idf = calculate_idf(pair.first);
-        pair.second = pair.second * idf;
-    }
-    
     return query_vector;
 }
 
