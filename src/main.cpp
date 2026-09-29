@@ -220,10 +220,18 @@ int main() {
             std::cout << "No documents found.\n";
         } else {
             int result_count = 0;
+            std::unordered_map<std::string, int> dir_counts;
+            
             for (const auto& res : phrase_results) {
-                if (result_count >= 10) break; // Only Display Top 10 Results
+                if (result_count >= 10) break; 
                 
                 std::string path = document_paths.count(res.doc_id) ? document_paths[res.doc_id] : "Unknown Document";
+                std::string parent_dir = fs::path(path).parent_path().string();
+                
+                /* Restrict output to a maximum of 2 files per directory to diversify results */
+                if (dir_counts[parent_dir] >= 2) continue;
+                
+                dir_counts[parent_dir]++;
                 std::cout << "Score: " << res.score << " | File: " << path << "\n";
                 result_count++;
             }
