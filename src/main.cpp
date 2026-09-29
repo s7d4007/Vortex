@@ -8,6 +8,11 @@
 #include "inverted_index.hpp"
 #include "trie.hpp"
 #include "utils.hpp"
+#include <thread>
+#include <mutex>
+#include <vector>
+
+std::mutex vortex_mutex;
 
 namespace fs = std::filesystem;
 
@@ -44,10 +49,42 @@ void autocomplete_search(const std::string& prefix, Trie& trie, InvertedIndex& e
     }
 }
 
+/* Isolate file operations and string tokenization */
+void process_file(const std::string& file_path, int doc_id, InvertedIndex& engine, Trie& autocomplete) {
+    std::ifstream file(file_path);
+    if (!file.is_open()) return;
+
+    std::string content;
+    std::string line;
+    while (std::getline(file, line)) {
+        content += line + " ";
+    }
+    file.close();
+
+    std::vector<std::string> local_tokens;
+    std::string normalized_content = normalize_text(content);
+    std::stringstream ss(normalized_content);
+    std::string word;
+    while (ss >> word) {
+        if (!is_stop_word(word)) {
+            local_tokens.push_back(word);
+        }
+    }
+
+    /* Synchronize core data structure mutation */
+    std::lock_guard<std::mutex> lock(vortex_mutex);
+    engine.add_document(doc_id, content);
+    for (const auto& token : local_tokens) {
+        autocomplete.insert(token);
+    }
+}
+
 void crawl_directory(const std::string& directory_path, InvertedIndex& engine, Trie& autocomplete) {
     std::unordered_set<std::string> text_extensions = {
         ".txt", ".md", ".cpp", ".hpp", ".h", ".json", ".csv", ".xml"
     };
+    std::vector<std::thread> workers;
+    unsigned int max_threads = std::thread::hardware_concurrency();
 
     for (const auto& entry : fs::recursive_directory_iterator(directory_path, fs::directory_options::skip_permission_denied)) {
         if (entry.is_regular_file()) {
@@ -56,45 +93,38 @@ void crawl_directory(const std::string& directory_path, InvertedIndex& engine, T
             std::string extension = entry.path().extension().string();
             std::cout << "Indexing: " << filename << "\n";
 
-            /* Index filename for universal file discovery */
-            engine.add_document(current_doc_id, filename);
+            {
+                /* Synchronize main thread state */
+                std::lock_guard<std::mutex> lock(vortex_mutex);
+                engine.add_document(current_doc_id, filename);
 
-            /* Tokenize filename for Trie autocomplete */
-            std::string normalized_filename = normalize_text(filename);
-            std::stringstream fs_ss(normalized_filename);
-            std::string f_word;
-            while (fs_ss >> f_word) {
-                if (!is_stop_word(f_word)) autocomplete.insert(f_word);
-            }
-
-            /* Read text formats and populate engine components */
-            if (text_extensions.find(extension) != text_extensions.end()) {
-                std::ifstream file(file_path);
-                if (file.is_open()) {
-                    std::string content;
-                    std::string line;
-                    while (std::getline(file, line)) {
-                        content += line + " ";
-                    }
-                    file.close();
-
-                    engine.add_document(current_doc_id, content);
-                    
-                    /* Populate Trie with normalized file content */
-                    std::string normalized_content = normalize_text(content);
-                    std::stringstream ss(normalized_content);
-                    std::string word;
-                    while (ss >> word) {
-                        if (!is_stop_word(word)) {
-                            autocomplete.insert(word);
-                        }
-                    }
+                std::string normalized_filename = normalize_text(filename);
+                std::stringstream fs_ss(normalized_filename);
+                std::string f_word;
+                while (fs_ss >> f_word) {
+                    if (!is_stop_word(f_word)) autocomplete.insert(f_word);
                 }
+                document_paths[current_doc_id] = file_path;
             }
 
-            document_paths[current_doc_id] = file_path;
+            if (text_extensions.find(extension) != text_extensions.end()) {
+                workers.emplace_back(process_file, file_path, current_doc_id, std::ref(engine), std::ref(autocomplete));
+            }
+            
+            /* Enforce thread pool boundaries */
+            if (workers.size() >= max_threads) {
+                for (auto& w : workers) {
+                    if (w.joinable()) w.join();
+                }
+                workers.clear();
+            }
             current_doc_id++;
         }
+    }
+
+    /* Await remaining thread completion */
+    for (auto& w : workers) {
+        if (w.joinable()) w.join();
     }
 }
 
