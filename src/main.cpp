@@ -19,6 +19,24 @@ namespace fs = std::filesystem;
 std::unordered_map<int, std::string> document_paths;
 int current_doc_id = 1;
 
+void save_paths(const std::string& filename) {
+    std::ofstream out(filename);
+    for (const auto& [id, path] : document_paths) {
+        out << id << "|" << path << "\n";
+    }
+}
+
+void load_paths(const std::string& filename) {
+    std::ifstream in(filename);
+    std::string line;
+    while (std::getline(in, line)) {
+        size_t delim = line.find('|');
+        if (delim != std::string::npos) {
+            document_paths[std::stoi(line.substr(0, delim))] = line.substr(delim + 1);
+        }
+    }
+}
+
 void autocomplete_search(const std::string& prefix, Trie& trie, InvertedIndex& engine) {
     std::vector<std::string> words = trie.get_words_with_prefix(prefix);
     std::unordered_map<int, double> combined_scores;
@@ -83,21 +101,36 @@ void crawl_directory(const std::string& directory_path, InvertedIndex& engine, T
     std::unordered_set<std::string> text_extensions = {
         ".txt", ".md", ".cpp", ".hpp", ".h", ".json", ".csv", ".xml"
     };
+    std::unordered_set<std::string> ignore_dirs = {
+        "node_modules", ".git", "build", "Debug", "Release", "dist"
+    };
+    
     std::vector<std::thread> workers;
     unsigned int max_threads = std::thread::hardware_concurrency();
 
-    for (const auto& entry : fs::recursive_directory_iterator(directory_path, fs::directory_options::skip_permission_denied)) {
-        if (entry.is_regular_file()) {
-            std::string file_path = entry.path().string();
-            std::string filename = entry.path().filename().string();
-            std::string extension = entry.path().extension().string();
-            std::cout << "Indexing: " << filename << "\n";
+    auto it = fs::recursive_directory_iterator(directory_path, fs::directory_options::skip_permission_denied);
+    auto end = fs::recursive_directory_iterator();
+
+    while (it != end) {
+        if (it->is_directory()) {
+            std::string dir_name = it->path().filename().string();
+            if (ignore_dirs.count(dir_name)) {
+                it.disable_recursion_pending(); // Instantly bypasses the entire folder
+            }
+        } else if (it->is_regular_file()) {
+            std::string file_path = it->path().string();
+            std::string filename = it->path().filename().string();
+            std::string extension = it->path().extension().string();
+
+            // Dynamic progress rewrite
+            if (current_doc_id % 25 == 0) {
+                std::cout << "\rIndexed " << current_doc_id << " files..." << std::flush;
+            }
 
             {
-                /* Synchronize main thread state */
                 std::lock_guard<std::mutex> lock(vortex_mutex);
                 engine.add_document(current_doc_id, filename);
-
+                
                 std::string normalized_filename = normalize_text(filename);
                 std::stringstream fs_ss(normalized_filename);
                 std::string f_word;
@@ -111,21 +144,19 @@ void crawl_directory(const std::string& directory_path, InvertedIndex& engine, T
                 workers.emplace_back(process_file, file_path, current_doc_id, std::ref(engine), std::ref(autocomplete));
             }
             
-            /* Enforce thread pool boundaries */
             if (workers.size() >= max_threads) {
-                for (auto& w : workers) {
-                    if (w.joinable()) w.join();
-                }
+                for (auto& w : workers) { if (w.joinable()) w.join(); }
                 workers.clear();
             }
             current_doc_id++;
         }
+        
+        std::error_code ec;
+        it.increment(ec);
     }
 
-    /* Await remaining thread completion */
-    for (auto& w : workers) {
-        if (w.joinable()) w.join();
-    }
+    for (auto& w : workers) { if (w.joinable()) w.join(); }
+    std::cout << "\rIndexed " << (current_doc_id - 1) << " files. Crawl complete!        \n";
 }
 
 int main() {
@@ -133,27 +164,43 @@ int main() {
     Trie autocomplete;
 
     std::cout << "\n--- VORTEX INITIALIZATION ---\n";
-    std::cout << "Enter full folder path to index (or press Enter to skip): ";
-    std::string target_dir;
-    std::getline(std::cin, target_dir);
+    bool run_crawl = true;
 
-    if (!target_dir.empty() && fs::exists(target_dir)) {
-        std::cout << "Crawling filesystem (this may take a moment)...\n";
-        
-        crawl_directory(target_dir, engine, autocomplete);
-        
-        std::cout << "Crawling complete. Indexed " << (current_doc_id - 1) << " files.\n";
-    } else if (!target_dir.empty()) {
-        std::cout << "Directory not found. Skipping crawl.\n";
+    if (fs::exists("vortex_index.txt") && fs::exists("vortex_paths.txt")) {
+        std::cout << "Existing cache found. [L]oad cache or [R]ebuild from folder? (L/R): ";
+        std::string choice;
+        std::getline(std::cin, choice);
+        if (choice == "L" || choice == "l") run_crawl = false;
     }
 
-    /* Save index to disk */
-    engine.save_index("vortex_index.txt");
-    std::cout << "Index successfully saved to vortex_index.txt!\n";
-
-    /* Load index from disk into secondary engine instance */
     InvertedIndex disk_engine;
-    disk_engine.load_index("vortex_index.txt");
+
+    if (run_crawl) {
+        std::cout << "Enter full folder path to index: ";
+        std::string target_dir;
+        std::getline(std::cin, target_dir);
+
+        if (!target_dir.empty() && fs::exists(target_dir)) {
+            std::cout << "Crawling filesystem (this may take a moment)...\n";
+            crawl_directory(target_dir, engine, autocomplete);
+            
+            engine.save_index("vortex_index.txt");
+            save_paths("vortex_paths.txt");
+            std::cout << "Cache successfully saved to disk!\n";
+            
+            disk_engine = engine; // Use memory engine directly
+        }
+    } else {
+        std::cout << "Loading engine from disk...\n";
+        disk_engine.load_index("vortex_index.txt");
+        load_paths("vortex_paths.txt");
+        
+        // Rebuild autocomplete Trie from disk data
+        for (const auto& term : disk_engine.get_all_terms()) {
+            autocomplete.insert(term);
+        }
+        std::cout << "Load complete!\n";
+    }
 
     std::string input;
     std::cout << "\n--- VORTEX SEARCH ENGINE ---\nType 'exit' to quit.\n\n";
@@ -172,9 +219,13 @@ int main() {
         if (phrase_results.empty()) {
             std::cout << "No documents found.\n";
         } else {
+            int result_count = 0;
             for (const auto& res : phrase_results) {
+                if (result_count >= 10) break; // Only Display Top 10 Results
+                
                 std::string path = document_paths.count(res.doc_id) ? document_paths[res.doc_id] : "Unknown Document";
                 std::cout << "Score: " << res.score << " | File: " << path << "\n";
+                result_count++;
             }
         }
 

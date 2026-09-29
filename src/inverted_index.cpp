@@ -185,3 +185,10 @@ void InvertedIndex::load_index(const std::string& filename) {
     }
     in.close();
 }
+
+std::vector<std::string> InvertedIndex::get_all_terms() const {
+    std::vector<std::string> terms;
+    terms.reserve(index.size());
+    for (const auto& pair : index) terms.push_back(pair.first);
+    return terms;
+}

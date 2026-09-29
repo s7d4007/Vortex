@@ -32,6 +32,9 @@ public:
     //Engine can access hard drive
     void save_index(const std::string& filename);
     void load_index(const std::string& filename);
+
+    //Rebuild trie from disk cache
+    std::vector<std::string> get_all_terms() const;
 };
 
 #endif // INVERTED_INDEX_HPP
