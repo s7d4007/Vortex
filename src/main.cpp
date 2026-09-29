@@ -29,12 +29,19 @@ void save_paths(const std::string& filename) {
 void load_paths(const std::string& filename) {
     std::ifstream in(filename);
     std::string line;
+    int paths_loaded = 0;
+    
     while (std::getline(in, line)) {
         size_t delim = line.find('|');
         if (delim != std::string::npos) {
             document_paths[std::stoi(line.substr(0, delim))] = line.substr(delim + 1);
         }
+        
+        if (++paths_loaded % 1000 == 0) {
+            std::cout << "\rLoading paths: " << paths_loaded << " files mapped..." << std::flush;
+        }
     }
+    std::cout << "\rLoading paths: " << paths_loaded << " files mapped. Complete!        \n";
 }
 
 void autocomplete_search(const std::string& prefix, Trie& trie, InvertedIndex& engine) {
@@ -195,10 +202,17 @@ int main() {
         disk_engine.load_index("vortex_index.txt");
         load_paths("vortex_paths.txt");
         
-        // Rebuild autocomplete Trie from disk data
-        for (const auto& term : disk_engine.get_all_terms()) {
+        // Rebuild autocomplete Trie from disk data with progress
+        std::vector<std::string> all_terms = disk_engine.get_all_terms();
+        int term_count = 0;
+        for (const auto& term : all_terms) {
             autocomplete.insert(term);
+            
+            if (++term_count % 5000 == 0) {
+                std::cout << "\rRebuilding Trie: " << term_count << " / " << all_terms.size() << " terms..." << std::flush;
+            }
         }
+        std::cout << "\rRebuilding Trie: " << term_count << " / " << all_terms.size() << " terms. Complete!        \n";
         std::cout << "Load complete!\n";
     }
 

@@ -1,4 +1,5 @@
 #include<fstream>
+#include<iostream>
 #include "../include/utils.hpp"
 #include "../include/inverted_index.hpp"
 #include <sstream>
@@ -172,6 +173,7 @@ void InvertedIndex::load_index(const std::string& filename) {
         total_docs = std::stoi(line);
     }
     
+    int terms_loaded = 0;
     while (std::getline(in, line)) {
         std::stringstream ss(line);
         std::string term;
@@ -182,7 +184,13 @@ void InvertedIndex::load_index(const std::string& filename) {
         while (ss >> doc_id >> frequency) {
             index[term].push_back({doc_id, frequency});
         }
+        
+        // Dynamic progress rewrite
+        if (++terms_loaded % 5000 == 0) {
+            std::cout << "\rLoading index: " << terms_loaded << " terms parsed..." << std::flush;
+        }
     }
+    std::cout << "\rLoading index: " << terms_loaded << " terms parsed. Complete!\n";
     in.close();
 }
 
