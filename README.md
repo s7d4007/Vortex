@@ -1,98 +1,225 @@
-# 🌪️ VORTEX (Vector Optimized Retrieval & Text Extraction eXecutable)
+# 🌪️ VORTEX
 
-**VORTEX** is a high-performance, in-memory text search engine engineered entirely in modern C++. It is designed to act as a lightweight retrieval backend for local environments, operating efficiently even on hardware constrained to standard 8GB memory limits.
+VORTEX is a lightweight C++ search engine for indexing and searching local documents from a filesystem tree. It is built for offline retrieval workflows, with a recursive file crawler, an inverted index, a prefix trie for suggestions, and cosine-similarity ranking for query results.
 
-By avoiding heavy external dependencies, VORTEX serves as a foundational architecture for offline RAG (Retrieval-Augmented Generation) pipelines, prioritizing cache locality, manual memory management, and algorithmic efficiency.
+The project is intentionally dependency-light and designed to run as a standalone CLI utility without any external database or service layer.
 
----
-
-![C++](https://img.shields.io/badge/C++17-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white) ![CMake](https://img.shields.io/badge/CMake-064F8C?style=for-the-badge&logo=cmake&logoColor=white) ![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge) ![Status](https://img.shields.io/badge/Status-Active_Development-success.svg)
-
-## 🧠 System Architecture & Core Algorithms
-
-VORTEX is built on top of carefully selected data structures and algorithms to ensure sub-millisecond retrieval times, advanced language processing, and high accuracy:
-
-* **Inverted Index (Core Retrieval):** Utilizes `std::unordered_map` mapping terms to document IDs and frequencies. Ensures O(1) average time complexity for direct token lookups without full-table scans.
-* **Prefix Trie (Autocomplete):** Implements an n-ary tree structure for real-time search suggestions. Provides O(L) time complexity (where L is word length) for prefix matching, independent of the total dataset size.
-* **Vector Mathematics (Ranking):** Implements **TF-IDF with Smoothing** to prevent ubiquitous terms from skewing mathematical weights, paired with **Cosine Similarity** to accurately rank multi-word phrases.
-* **Levenshtein Distance (Typo Tolerance):** Utilizes dynamic programming to calculate character edit distances, enabling robust "fuzzy search" that catches misspellings (e.g., mapping "algotihm" to "algorithm").
-* **Linguistic Processing (Optimization):** Centralized text normalization strips punctuation and standardizes cases, while a hardcoded **Stop-Word Filter** aggressively blocks grammatical glue words ("the", "is", "at") from consuming index memory.
-* **Persistent Storage (Serialization):** Features a custom File I/O pipeline that serializes the complex C++ Inverted Index into a lightweight text file (`vortex_index.txt`), allowing the engine to instantly load its "brain" into RAM on startup without rebuilding from raw data.
+![C++](https://img.shields.io/badge/C%2B%2B-17-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white) ![CMake](https://img.shields.io/badge/CMake-3.10%2B-064F8C?style=for-the-badge&logo=cmake&logoColor=white)
 
 ---
 
-## 📂 Repository Structure
+## What the project does
 
-The project strictly follows enterprise C++ layout conventions, separating declarations, implementations, and build artifacts.
+VORTEX performs the following tasks:
+
+- Recursively crawls a directory and indexes supported text files
+- Normalizes and tokenizes document text
+- Filters common stop words to reduce noise
+- Builds an inverted index for term lookup
+- Builds a trie for prefix-driven autocomplete
+- Uses TF-IDF-style weighting and cosine similarity to rank search results
+- Supports fuzzy matching for near-miss spellings via Levenshtein distance
+- Saves and reloads the index and document path map from disk for faster startup
+
+---
+
+## Core architecture
+
+### Inverted index
+The engine stores terms as keys and document postings as values. Each posting contains:
+
+- document id
+- term frequency
+
+This allows quick retrieval of matching documents for a search term.
+
+### Trie autocomplete
+The trie stores normalized words and can return all words that begin with a specified prefix. This powers the suggestion list shown after each query.
+
+### Ranking model
+The engine combines inverted-index retrieval with cosine similarity and a TF-IDF-like score to rank documents by relevance.
+
+### Fuzzy search
+If a query term is not found exactly, the code compares it against indexed terms using Levenshtein distance and uses the closest match within a configured threshold.
+
+### File cache
+When the app is run, it can reuse cached data from:
+
+- `vortex_index.txt`
+- `vortex_paths.txt`
+
+These files are generated in the project root and let the search engine reload previously indexed content instead of rebuilding everything from scratch.
+
+---
+
+## Repository layout
 
 ```text
-vortex/
-├── include/              # Header files (Class blueprints and utilities)
+Vortex/
+├── CMakeLists.txt
+├── README.md
+├── .gitignore
+├── data/
+│   └── (empty by default; can hold sample content)
+├── include/
 │   ├── inverted_index.hpp
 │   ├── trie.hpp
-│   └── utils.hpp         # Text normalizer, stop-word filter, & fuzzy match logic
-├── src/                  # Source files (Core logic and implementations)
+│   └── utils.hpp
+├── src/
 │   ├── inverted_index.cpp
 │   ├── trie.cpp
-│   └── main.cpp          # Entry point containing the interactive CLI loop
-├── data/                 # Raw unstructured text files for indexing
-├── CMakeLists.txt        # CMake build configuration
-├── .gitignore            # Excludes build binaries and environment cache
-└── README.md             # Project documentation
-
+│   └── main.cpp
+├── build/
+│   └── generated CMake/MSBuild output
+├── vortex_index.txt
+├── vortex_paths.txt
+└── vortex.exe (generated after build)
 ```
 
 ---
 
-## 🚀 Getting Started
+## Prerequisites
 
-### Prerequisites
+- C++17 compatible compiler
+- CMake 3.10 or newer
+- Windows: MSVC / Visual Studio Build Tools is the most direct setup
+- Linux/macOS: GCC or Clang should work with the same CMake project
 
-* **C++ Compiler:** MSVC (Visual Studio Build Tools 2022) or GCC/Clang with C++17 support.
-* **Build System:** CMake (Version 3.10 or higher).
+---
 
-### Build Instructions
+## Build instructions
 
-VORTEX uses CMake for cross-platform build generation. To compile the engine from source:
+From the project root:
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/s7d4007/vortex.git
-cd vortex
+cmake -S . -B build
+cmake --build build --config Debug
+```
 
-# 2. Generate build files (configured for MSVC/Windows)
-mkdir build
-cd build
-cmake .. -G "Visual Studio 17 2022" -A x64
+If you want to generate a Visual Studio solution explicitly on Windows:
 
-# 3. Build the executable
-cmake --build . --config Debug
+```bash
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+cmake --build build --config Debug
+```
 
-# 4. Run the engine (Launches the interactive CLI)
-.\Debug\vortex.exe
+The executable will be created under:
 
+```bash
+build/Debug/vortex.exe
 ```
 
 ---
 
-## 🗺️ Development Roadmap
+## Running the application
 
-* [X] **Phase 1:** Core Inverted Index structure and memory-safe posting lists.
-* [X] **Phase 2:** Trie data structure for low-latency autocomplete suggestions.
-* [X] **Phase 3:** TF-IDF smoothed mathematical scoring and Cosine Similarity multi-word ranking.
-* [X] **Phase 4:** Linguistic Processing (Stop-word removal, lowercase normalization, punctuation stripping).
-* [X] **Phase 5:** Fuzzy Matching (Levenshtein Distance) and interactive CLI loop integration.
-* [X] **Phase 6:** Persistent Disk Storage via File I/O serialization.
-* [ ] **Phase 7:** Local Filesystem Crawler (Ingesting physical `.txt`, `.md`, and `.cpp` files from the hard drive).
-* [ ] **Phase 8:** Decoupled REST API layer for integration with frontend interfaces or local LLMs.
+Start the CLI with:
+
+```bash
+./build/Debug/vortex.exe
+```
+
+On Windows PowerShell or Command Prompt:
+
+```powershell
+.\build\Debug\vortex.exe
+```
+
+### Startup behavior
+
+At launch, the program checks whether cached index files already exist:
+
+- If `vortex_index.txt` and `vortex_paths.txt` are present, it asks:
+  - `L` to load the cache
+  - `R` to rebuild from a folder
+
+If you choose rebuild, it will prompt for a directory path and recursively crawl that folder.
+
+### Ignored directories
+The crawler skips common large or irrelevant folders such as:
+
+- `.git`
+- `node_modules`
+- `build`
+- `Debug`
+- `Release`
+- `dist`
+
+### Supported file types
+The crawler includes common text-based files such as:
+
+- `.txt`
+- `.md`
+- `.cpp`
+- `.hpp`
+- `.h`
+- `.json`
+- `.csv`
+- `.xml`
 
 ---
 
-## 👨‍💻 Author
+## Typical usage workflow
 
-**Souvik Shomenath Dutta**
+1. Run the app.
+2. Enter a directory path to crawl and index.
+3. Wait for the crawl to finish and cache to be written.
+4. Enter a search query at the `Search>` prompt.
+5. Review ranked results and autocomplete suggestions.
+6. Type `exit` or `quit` to end the session.
 
-* **GitHub:** [@s7d4007](https://github.com/s7d4007?utm_source=gemini)
-* **LinkedIn:** [Souvik Dutta](https://linkedin.com/in/souvikdutta7?utm_source=gemini)
+Example interaction:
 
-> "Optimizing systems from the hardware up."
+```text
+--- VORTEX INITIALIZATION ---
+Enter full folder path to index: C:/Users/me/Documents
+Crawling filesystem (this may take a moment)...
+Cache successfully saved to disk!
+
+--- VORTEX SEARCH ENGINE ---
+Type 'exit' to quit.
+
+Search> machine learning
+```
+
+The app prints ranked document matches and then shows prefix suggestions based on the final token in the query.
+
+---
+
+## Notes and limitations
+
+- This is a local, offline search tool; it does not expose a REST API or web frontend.
+- The crawler is text-focused and intentionally skips common generated folders.
+- The current implementation is a research-grade prototype rather than a production-grade retrieval service.
+- Cached index files are written to the working directory where the app is launched.
+
+---
+
+## Roadmap status
+
+The codebase already includes core functionality for:
+
+- [x] directory crawling
+- [x] inverted index storage and retrieval
+- [x] trie-based autocomplete
+- [x] cosine ranking
+- [x] fuzzy term matching
+- [x] persistent cache files
+
+Planned future work may include:
+
+- [ ] richer file-type handling
+- [ ] API integration layer
+- [ ] larger-scale indexing optimizations
+- [ ] better result presentation and filtering
+
+---
+
+## Author
+
+Souvik Shomenath Dutta
+
+- GitHub: [@s7d4007](https://github.com/s7d4007)
+- LinkedIn: [Souvik Dutta](https://www.linkedin.com/in/souvikdutta7/)
+
+> “Optimizing systems from the hardware up.”
